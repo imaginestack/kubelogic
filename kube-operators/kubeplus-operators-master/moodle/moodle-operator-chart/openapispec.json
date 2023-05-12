@@ -1,0 +1,89 @@
+{
+  "swagger": "2.0",
+  "info": {
+   "title": "OpenAPI Doc Generator",
+   "version": "0.0.1"
+  },
+  "paths": {},
+  "definitions": {
+   "typedir.Moodle": {
+    "description": "Moodle is a specification for a Moodle resource",
+    "required": [
+     "spec",
+     "status"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "spec": {
+      "$ref": "#/definitions/typedir.MoodleSpec"
+     },
+     "status": {
+      "$ref": "#/definitions/typedir.MoodleStatus"
+     }
+    }
+   },
+   "typedir.MoodleSpec": {
+    "description": "MoodleSpec is the spec for a MoodleSpec resource",
+    "required": [
+     "name",
+     "plugins"
+    ],
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "plugins": {
+      "description": "Comma separated list of plugin names from: https://moodle.org/plugins/",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "typedir.MoodleStatus": {
+    "description": "MoodleStatus is the status for a Moodle resource",
+    "required": [
+     "podName",
+     "secretName",
+     "status",
+     "url",
+     "installedPlugins",
+     "unsupportedPlugins"
+    ],
+    "properties": {
+     "installedPlugins": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "podName": {
+      "type": "string"
+     },
+     "secretName": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string"
+     },
+     "unsupportedPlugins": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "url": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }

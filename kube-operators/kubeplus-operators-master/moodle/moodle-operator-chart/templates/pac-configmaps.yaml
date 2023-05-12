@@ -1,0 +1,18 @@
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: moodle-operator-usage
+data:
+  usage: |
+    In order to use Moodle Custom Resource you need to first create a MySQL Instance. You can either
+    use MySQL Operator to create an instance or use a regular MySQL Deployment. Specify the name of
+    the MySQL Service object in the 'mySQLServiceName' spec property of Moodle Custom Resource spec.
+
+    Moodle Operator supports namespaces. When creating a Moodle Custom Resource you can specify the
+    namespace in metadata.namespace attribute. If namespace attribute is not specified, default namespace
+    is assumed. 
+
+    Moodle Operator uses following values in its code. These cannot be changed.
+    - Moodle.Deployment.Pod.VolumeMounts.MountPath=/opt/moodledata
+    - Moodle.PersistentVolume.StorageClass=manual
+    - Moodle.PersistentVolume.Capacity=1Gi

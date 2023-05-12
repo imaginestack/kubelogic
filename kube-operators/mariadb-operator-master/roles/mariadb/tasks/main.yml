@@ -1,0 +1,8 @@
+---
+- name: Ensure configured MariaDB resources exist in the cluster.
+  k8s:
+    definition: "{{ lookup('template', item) | from_yaml }}"
+  with_items:
+    - mariadb_secret.yaml.j2
+    - mariadb_statefulset.yaml.j2
+    - mariadb_service.yaml.j2

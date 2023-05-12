@@ -1,0 +1,48 @@
+---
+- name: Verify cluster resources
+  hosts: localhost
+  connection: local
+
+  vars:
+    ansible_python_interpreter: '{{ ansible_playbook_python }}'
+
+  tasks:
+    - name: Get mariadb Pod data
+      k8s_info:
+        kind: Pod
+        namespace: example-mariadb
+        label_selectors:
+          - app=mariadb
+      register: mariadb_pods
+
+    - name: Verify there is one mariadb pod
+      assert:
+        that: '{{ (mariadb_pods.resources | length) == 1 }}'
+
+- name: Verify database functionality
+  hosts: k8s
+
+  vars:
+    mariadb_db_host: example-mariadb-0.example-mariadb.example-mariadb.svc.cluster.local
+    mariadb_db_name: db
+    mariadb_db_username: db_user
+    mariadb_db_password: CHANGEME
+
+  tasks:
+    - name: Wait 60s for database to initialize.
+      pause:
+        seconds: 60
+
+    - name: Create a table in the test database.
+      command: >
+        kubectl -n example-mariadb run -it --rm mysql-client --image=arey/mysql-client --restart=Never --
+        -h {{ mariadb_db_host }} -u {{ mariadb_db_username }} -p{{ mariadb_db_password }} -D {{ mariadb_db_name }}
+        -e "CREATE TABLE IF NOT EXISTS test (title VARCHAR(255));"
+      changed_when: true
+
+    - name: Verify the table exists.
+      command: >
+        kubectl -n example-mariadb run -it --rm mysql-client --image=arey/mysql-client --restart=Never --
+        -h {{ mariadb_db_host }} -u {{ mariadb_db_username }} -p{{ mariadb_db_password }} -D {{ mariadb_db_name }}
+        -e "SELECT 1 FROM test LIMIT 1;"
+      changed_when: false

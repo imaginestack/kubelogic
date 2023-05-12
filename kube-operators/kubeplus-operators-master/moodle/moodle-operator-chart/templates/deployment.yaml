@@ -1,0 +1,45 @@
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: moodle-operator-rbac
+subjects:
+  - kind: ServiceAccount
+    # Reference to upper's `metadata.name`
+    name: default
+    # Reference to upper's `metadata.namespace`
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: moodle-operator-deployment
+  labels:
+    app: moodle-operator
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: moodle-operator
+  template:
+    metadata:
+      labels:
+        app: moodle-operator
+    spec:
+      containers:
+      - name: moodle-operator
+        image: lmecld/moodle-operator:0.4.9
+        imagePullPolicy: Always
+        command: [ "/moodle"]
+        #env:
+        #- name: HOST_IP
+        #  value: {{ .Values.HOST_IP }}
+        #env:
+        #- name: HOST_IP
+        #  valueFrom:
+        #    fieldRef:
+        #      fieldPath: status.hostIP
+
