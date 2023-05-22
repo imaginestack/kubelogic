@@ -8,7 +8,6 @@ This paradigm shift in software development began by creating microservices inst
 
 In this first section, Kubernetes design patterns will be presented, starting with the fundamentals of design patterns. Following that, you will build Kubernetes solutions using structural patterns, assemble systems with behavioral patterns, and finally, install applications according to the deployment strategies.
 
-By the end of this section, you will be able to:
 
 -   Define the fundamentals of design patterns
 -   Explain the classification of patterns
@@ -17,7 +16,6 @@ By the end of this section, you will be able to:
 -   Assemble complex systems with behavioral patterns
 -   Install applications with deployment strategies
 
-**Bookmark**
 
 ## Software Design Patterns
 
