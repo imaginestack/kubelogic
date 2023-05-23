@@ -90,7 +90,6 @@ Use the Kubernetes Downward API to collect runtime information.
 3.  Check the status of the pod.
 4.  Check the logs of the container.
 
-All of the code files for the activities in this chapter are provided on GitHub in the Lesson-1 folder at [https://goo.gl/gM8W3p](https://goo.gl/gM8W3p).
 
 # Deployment Strategies
 
