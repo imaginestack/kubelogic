@@ -8,7 +8,6 @@ This paradigm shift in software development began by creating microservices inst
 
 In this first section, Kubernetes design patterns will be presented, starting with the fundamentals of design patterns. Following that, you will build Kubernetes solutions using structural patterns, assemble systems with behavioral patterns, and finally, install applications according to the deployment strategies.
 
-By the end of this section, you will be able to:
 
 -   Define the fundamentals of design patterns
 -   Explain the classification of patterns
@@ -25,6 +24,7 @@ There are two main uses of design patterns. First, design patterns create a comm
 ### Classification of Software Design Patterns
 
 Design patterns are classified in three ways. With new technologies and programming languages always emerging, new groups are proposed, but the main idea of classification remains the same – the interaction between their controllers and other applications:
+
 
 ![Design Patterns Classification](https://static.packt-cdn.com/products/9781789619270/graphics/assets/0937be66-17ef-44fb-b90c-2a528ff58682.png)
 
@@ -74,3 +74,6 @@ You are assigned the task of making a Kubernetes installation for a web-based 20
 **Aim**
 
 With the successful deployment, there should be a pod running in Kubernetes with two containers. One of the containers should serve the game and the other container, namely the sidecar container, should continuously update the source code of the game. Using Kubernetes, you need to create a cloud-native solution where the server and synchronization tasks are working together, but not depending on each other.
+=======
+Design patterns and corresponding business requirements could seem artificial and only software-related. However, both problems and solutions have roots in real life. For instance, the singleton pattern is proposed as a best practice for implementing a configuration manager. With the same approach in mind, the adapter pattern is proposed as a best practice to work with both versions of the APIs. As its name implies, it is a similar approach in real-life to using electrical adapters to work with the different plug and socket types in various countries. As these examples indicate, software design patterns and the ideas behind them all come from real-life experiences.
+>>>>>>> fad22cd1982c8dcfc52d9e288adbc23b5931a14d
