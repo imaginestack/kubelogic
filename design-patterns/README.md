@@ -129,70 +129,205 @@ The primary benefits of the recreate strategy are that it's straightforward and 
 
 # Deploying the Application Using the Recreate Strategy
 
-creating a new deployment resource with the recreate strategy.
+Let's begin by following these steps:
 
-    Create a YAML file named recreate-deployment.yaml and open it for editing:
+1.  Create the deployment with the following command:
 
-yaml
+```markup
+ kubectl apply -f recreate.yaml
+```
 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: myapp
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: myapp
-  template:
-    metadata:
-      labels:
-        app: myapp
-    spec:
-      containers:
-        - name: myapp
-          image: your-image:latest
-          ports:
-            - containerPort: 8080
+2.  In a separate terminal, watch for the deployment changes and wait until all three are available:  
+    
 
-    Replace your-image with the appropriate image name and version.
+```markup
+kubectl get deployment recreate -w 
+```
 
-    Save the file and exit the editor.
+3.  Update the version of the deployment:
 
-    Deploy the application using the kubectl apply command:
+```markup
+kubectl patch deployment recreate -p '{"spec":{"template":{"spec":{"containers":[{"name":"nginx", "image":"nginx:1.11"}]}}}}'
+```
 
-bash
+4.  In the terminal that we opened in _Step 2_, it is expected that you should see the deletion of the pods and the downtime, where Available reaches zero. Afterward, the creation of new instances can be tracked, where Available increases from 0 to 3:
 
-kubectl apply -f recreate-deployment.yaml
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/d454aa26-432c-4254-95b7-f6bce2eeeabd.png)
 
-    Check the status of the deployment:
+5.  You can run the following command for cleanup:  
+    
 
-bash
-
-kubectl get deployment myapp
-
-You should see the number of desired replicas and available replicas as 3.
-
-    Access the application by using a load balancer or the service IP.
-
-    To update the application, make changes to your application code and build a new Docker image with a new version tag.
-
-    Update the deployment using the kubectl apply command:
-
-bash
-
-kubectl apply -f recreate-deployment.yaml
-
-Kubernetes will handle the update by terminating the existing pods and creating new pods with the updated image.
-
-    Check the status of the deployment again:
-
-bash
-
-kubectl get deployment myapp
+```markup
+ kubectl delete -f recreate.yaml
+```
 
 You will notice that the available replicas will gradually decrease to 0, and then increase to 3 as the new pods are created.
 
-    Access the application again to see the updated version.
-
 By using the recreate strategy, Kubernetes ensures that there is no moment when two versions of the application are running together. However, there will be a short downtime during the update when no pods are available.
+
+# Rolling Update Strategy
+
+The rolling update strategy, which is also known as incremental or ramped, is based on the idea of slowly rolling out a version by replacing the previous ones. In this strategy, firstly, a pool of applications is running behind a load balancer. Then, new version instances are started, and when they are up and running, the load balancer redirects requests to the new instances. At the same time, instances from the previous versions are shut down. In Kubernetes, the rolling update strategy is the default strategy in deployments, so any update on the _deployment_ is already implementing the rolling update strategy.
+
+While Kubernetes handles this, the steps of the rolling strategy can be tracked as follows:
+
+1.  Requests from users are routed to **V1** instances by using a load balancer:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/0707a0f0-02c2-415c-9215-a3b8c0163a68.png)
+
+2.  **V2** instances are created, and users are directed to them. At the same time, **V1** instances are deleted. During this stage, both versions are running and serving requests:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/a5f35b30-2119-44ad-b308-bcfa89c94766.png)
+
+3.  Creating **V2** instances and the deletion of **V1** instances is done one at a time until there are no **V1** instances left:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/9462c465-a2ff-48cd-a6c8-3f107f38e8b5.png)
+
+4.  Finally, all requests from all users are routed to **V2** instances:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/1bf167fe-323b-4530-9eff-3680ba2479b5.png)
+
+The main advantage of the rolling update strategy is that it is easy and is the default approach of Kubernetes. It is also beneficial for a slow release of new versions by balancing the load during the startup of new instances. On the other hand, Kubernetes automatically handles rollout and rollback, and the duration of these operations are not known. One of the most complicated problems in rolling updates is that two versions are running at the same time in the cluster, and the traffic is not under control.
+
+# Deploying an Application Using the Rolling Update Strategy
+
+You are running a high-available application on Kubernetes that needs a deployment strategy to handle updates. This application, let's say, the frontend of your client's company, should always be available so that downtime is out of the question. Multiple versions of the applications could be working together at any time; however, the client does not want to cover the cost of extra resources during the update. We'll run an application with the rolling update deployment strategy so that updates will be handled by Kubernetes by incrementally creating new instances and deleting old instances, one after another. Let's begin by following these steps:
+
+1.  Create the deployment with the following command:
+
+```markup
+kubectl apply -f rolling.yaml
+```
+
+2.  In a separate terminal, start a cURL instance in the Kubernetes cluster:  
+    
+
+```markup
+kubectl run curl --image=tutum/curl --rm -it
+```
+
+3.  When the Command Prompt is ready, watch for the version of the deployment by using an HTTP request:  
+    
+
+```markup
+while sleep 0.5; do curl -s http://rolling/version | grep nginx; done
+```
+
+4.  Update the version of the deployment with the following command:  
+    
+
+```markup
+kubectl patch deployment rolling -p '{"spec":{"template":{"spec":{"containers":[{"name":"nginx", "image":"nginx:1.11"}]}}}}'
+```
+
+5.  In the terminal that we opened in _Step 2_, it is expected that we should see Kubernetes handle an incremental change of versions. During the update, there is no interruption of the service. However, both versions are alive and serving requests as 1.10.3 and 1.11.13, and are used interchangeably:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/d8d68db0-6c48-4443-a634-9be83d2c51cd.png)
+
+6.  For cleanup, stop the cURL command with _Ctrl_ + _C_ and exit from the pod by writing exit. The pod will be deleted by Kubernetes upon exit. Run the following command:
+
+```markup
+kubectl delete -f rolling.yaml
+```
+
+  
+You can find the rolling.yaml file at: [https://goo.gl/eo8cJw](https://goo.gl/eo8cJw).  
+
+# Blue/Green Strategy
+
+The blue/green strategy is the idea of having two active production environments, namely blue and green. The blue environment is active and serving requests. The green environment has the new version, and it is being tested for the update. When the tests are completed successfully, the load balancer is switched from blue to green instances. In Kubernetes, blue/green deployment is handled by installing both versions and then changing the configuration of a service or resource.
+
+1.  The main steps of the blue/green strategy can be defined as follows:Both the **V1** and **V2** instances are deployed, and the load balancer is configured for **V1** instances:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/af597763-50de-41f6-ba77-492ff0ccd5bd.png)
+
+2.  After testing, the load balancer is configured for route **V2** instances:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/aa4fe476-3a42-40f5-a90c-243e8b840c04.png)
+
+Advantages of the blue/green strategy include instant rollout and rollback, and no version mismatch during the update. On the other hand, a drawback of this strategy is that you are using double the resources since two environments are maintained. It should be noted that exhaustive end-to-end testing of applications should be handled before using this strategy.  
+
+# Deploying an Application Using the Blue/Green Strategy
+
+You are running a high-available application on Kubernetes that needs a deployment strategy to handle updates. This application, for example, a mortgage calculation engine API, has different versions, which result in different calculation results. Therefore, the client requires extensive testing before release and instant switches between the versions. We'll run an application with blue/green strategy so that both versions are running, and Kubernetes service handles instant switch of version. We'll run an application with blue/green strategy so that both versions are running, and Kubernetes service handles instant switch of version. Let's begin by performing the following steps:  
+
+1.  Create both versions of the deployment and the common service with the following command:  
+    
+
+```markup
+kubectl apply -f blue-green.yaml
+```
+
+2.  Check that both versions are deployed on the cluster with the following command:
+
+```markup
+kubectl get pods
+```
+
+You should see the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/f3d121b9-05cb-4d96-b5a1-c5fb200b00bf.png)
+
+3.  In a separate terminal, start a cURL instance in the Kubernetes cluster:  
+    
+
+```markup
+kubectl run curl --image=tutum/curl --rm -it
+```
+
+4.  When the command prompt is ready, watch for the version of the deployment by using an HTTP request:
+
+```markup
+while sleep 0.5; do curl -s http://blue-green/version | grep nginx; done
+```
+
+5.  Update the service to route traffic to the new version with the following command:  
+    
+
+```markup
+kubectl patch service blue-green -p '{"spec":{"selector":{"version":"1.11"}}}'
+```
+
+6.  In the terminal that we opened in Step 3, we should see the Kubernetes service handling an instant change of versions without any interruption:  
+    
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/dfd8eddc-0b64-47c8-9d92-f6995b3f476d.png)
+
+7.  For cleanup, stop the cURL command with _Ctrl_ + _C_ and exit from the pod by writing exit. The pod will be deleted by Kubernetes upon exit. Run the following command:  
+    
+
+```markup
+kubectl delete -f blue-green.yaml
+```
+
+# A/B Testing Strategy
+
+The A/B testing strategy is based on the idea of consumer separation and providing different subsets of functionalities. A/B testing allows you to run multiple variants of functionality in parallel. With the analytics of user behavior, users can be routed to a more appropriate version. The following is a sample list of conditions that can be used in order to scatter traffic:
+
+-   Cookies
+-   Location
+-   Technology, such as the browser, screen size, and mobility
+-   Language  
+    
+
+In the following image, both versions are installed, and users are routed based on their technology characteristics, that is, mobile or desktop:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/4967e855-c0ea-4645-a614-3e5e321fbc9f.png)
+
+The main advantage of the A/B testing strategy is that you have full control over traffic. However, distributing the traffic requires an intelligent load balancer other than the regular Kubernetes services. Some of the popular applications for this are as follows:
+
+-   Linkerd
+-   Traefik
+-   NGINX
+-   HAProxy
+-   Istio  
+    
+
+Linkerd, Traefik, NGINX, and HAProxy are data plane applications that focus on forwarding and observing network packages between service instances. On the other hand, Istio is a control plane application that focuses on the configuration and  
+management of proxies that route traffic.
+
+# Deployment Strategies Summary
+
+Before choosing a deployment strategy, it should be taken into consideration that there is no silver bullet to solve all production environment requirements. Therefore, it is crucial to check and compare the advantages and disadvantages of strategies and choose the most appropriate one:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/701f9765-e455-4e84-8f19-ca2ff8086047.png)
