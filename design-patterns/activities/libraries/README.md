@@ -2,7 +2,7 @@
 
 Following are the activity solutions for this section.  
 
-# Activity: Using the Kubernetes Go Client inside the Cluster
+### Activity: Using the Kubernetes Go Client inside the Cluster
 
 1.  Create a deployment with the Docker image of the example client from the previous exercise:  
     
