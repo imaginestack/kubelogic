@@ -77,3 +77,56 @@ With the successful deployment, there should be a pod running in Kubernetes with
 
 Design patterns and corresponding business requirements could seem artificial and only software-related. However, both problems and solutions have roots in real life. For instance, the singleton pattern is proposed as a best practice for implementing a configuration manager. With the same approach in mind, the adapter pattern is proposed as a best practice to work with both versions of the APIs. As its name implies, it is a similar approach in real-life to using electrical adapters to work with the different plug and socket types in various countries. As these examples indicate, software design patterns and the ideas behind them all come from real-life experiences.
 
+**Prerequisites**
+
+Use the Kubernetes Downward API to collect runtime information.
+
+**Steps for Completion**
+
+1.  Create a pod definition with one container:
+    -   Define the environment variables from the Downward API.
+    -   Create a shell script to write the environment variables.
+2.  Deploy the pod.
+3.  Check the status of the pod.
+4.  Check the logs of the container.
+
+All of the code files for the activities in this chapter are provided on GitHub in the Lesson-1 folder at [https://goo.gl/gM8W3p](https://goo.gl/gM8W3p).
+
+# Deployment Strategies
+
+Designing and developing cloud-native applications with the microservice architecture is essential for reliable and scalable applications of the future. Likewise, deploying and updating applications in the cloud is as critical as design and development. There are various techniques for delivering applications, and therefore choosing the right setup is essential to leverage the impact of change on the consumers. Using the right subset of Kubernetes resources and choosing an appropriate deployment strategy, scalable and reliable cloud-native applications are feasible.
+
+In this section, the following deployment strategies are presented, and you are expected to complete these exercises so that you can see the Kubernetes resources in action:
+
+-   Recreate strategy
+-   Rolling update strategy
+-   Blue/green strategy
+-   A/B testing strategy
+
+# Recreate Strategy
+
+The recreate strategy is based on the idea of closing old version instances and then creating the next version's. With this strategy, it is inevitable to have downtime, depending on both the shutdown and start duration of applications. In Kubernetes, the recreate strategy can be used for creating deployment resources with the strategy of recreate.
+
+The rest of the operations are handled by Kubernetes. Under the hood, the steps of the recreate strategy are as follows:
+
+1.  Requests from users are routed to **V1** instances by using a load balancer:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/3fa1ecdc-f978-421f-9b08-34e379187f7c.png)
+
+2.  **V1** instances are closed, and downtime has started since there is no available instance:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/9a6d3f60-4721-4ddd-80ed-00a168eebd3b.png)
+
+3.  **V2** instances are created; however, they are not serving the requests until they are ready:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/38e97134-fe36-4db0-8736-502a2f511080.png)
+
+4.  Requests from users are routed to **V2** instances:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/d495b280-8f6c-4d74-98ee-befcbcdb1632.png)
+
+The primary benefits of the recreate strategy are that it's straightforward and doesn't have any overhead processes. Besides this, the instances are completely renewed with every update, and there is no time when two versions are running together. However, the downside of this strategy is an inevitable downtime during the update.
+
+# Deploying the Application Using the Recreate Strategy
+
+You are running a high-available application on Kubernetes that needs a deployment strategy to handle updates. This application can resist the short span of downtimes; however, there should not be any moment where two versions are running together. This application consumes services that cannot handle working with two different versions at the same time. We want to run an application with the recreate deployment strategy so that updates will be handled by Kubernetes by.
