@@ -963,4 +963,6 @@ There are some critical points to consider before using a community-maintained c
 
 In this section, Kubernetes API access and client libraries were discussed. Although there are various tools for communicating with Kubernetes, knowing the Kubernetes API itself and the client libraries is crucial for creating game-changing automation and orchestration tasks.  
 Firstly, the Kubernetes API style and how to connect using HTTP clients was presented. Following that, the client libraries of Kubernetes were covered, and we focused on two official client libraries. For both Go and Python, how to install, write code, package, and deploy this code into cluster steps was done with demonstrations and activities.  
+
+
 Finally, community-maintained libraries for different language preferences or custom requirements were shown. With the knowledge and hands-on experience of Kubernetes client libraries, higher levels of automation and extending Kubernetes is possible. In the following section, the best practices covered in the first section and the client libraries included in this section are gathered together to create applications that extend Kubernetes.
