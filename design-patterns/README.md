@@ -129,4 +129,70 @@ The primary benefits of the recreate strategy are that it's straightforward and 
 
 # Deploying the Application Using the Recreate Strategy
 
-You are running a high-available application on Kubernetes that needs a deployment strategy to handle updates. This application can resist the short span of downtimes; however, there should not be any moment where two versions are running together. This application consumes services that cannot handle working with two different versions at the same time. We want to run an application with the recreate deployment strategy so that updates will be handled by Kubernetes by.
+creating a new deployment resource with the recreate strategy.
+
+    Create a YAML file named recreate-deployment.yaml and open it for editing:
+
+yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: myapp
+          image: your-image:latest
+          ports:
+            - containerPort: 8080
+
+    Replace your-image with the appropriate image name and version.
+
+    Save the file and exit the editor.
+
+    Deploy the application using the kubectl apply command:
+
+bash
+
+kubectl apply -f recreate-deployment.yaml
+
+    Check the status of the deployment:
+
+bash
+
+kubectl get deployment myapp
+
+You should see the number of desired replicas and available replicas as 3.
+
+    Access the application by using a load balancer or the service IP.
+
+    To update the application, make changes to your application code and build a new Docker image with a new version tag.
+
+    Update the deployment using the kubectl apply command:
+
+bash
+
+kubectl apply -f recreate-deployment.yaml
+
+Kubernetes will handle the update by terminating the existing pods and creating new pods with the updated image.
+
+    Check the status of the deployment again:
+
+bash
+
+kubectl get deployment myapp
+
+You will notice that the available replicas will gradually decrease to 0, and then increase to 3 as the new pods are created.
+
+    Access the application again to see the updated version.
+
+By using the recreate strategy, Kubernetes ensures that there is no moment when two versions of the application are running together. However, there will be a short downtime during the update when no pods are available.
