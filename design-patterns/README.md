@@ -956,13 +956,586 @@ There are some critical points to consider before using a community-maintained c
 -   **Version and support**: Official libraries support specific Kubernetes API versions and maintain a compatibility matrix. It is critical to work with the client libraries that work with your Kubernetes cluster, and it is also essential to get support for future Kubernetes versions. A community-maintained client library could be very suitable today but depreciate in six months if not supported.  
     
 -   **Community interest**: If the considered client library is open source, its community should be alive and interested in making the library better. It is very common to see some libraries start very well but not be maintained due to a missing community. It is not advised to use a client library with old issues without any comments or pull requests that are not reviewed for a very long time.  
-    
 
-
-# Summary
 
 In this section, Kubernetes API access and client libraries were discussed. Although there are various tools for communicating with Kubernetes, knowing the Kubernetes API itself and the client libraries is crucial for creating game-changing automation and orchestration tasks.  
 Firstly, the Kubernetes API style and how to connect using HTTP clients was presented. Following that, the client libraries of Kubernetes were covered, and we focused on two official client libraries. For both Go and Python, how to install, write code, package, and deploy this code into cluster steps was done with demonstrations and activities.  
 
 
 Finally, community-maintained libraries for different language preferences or custom requirements were shown. With the knowledge and hands-on experience of Kubernetes client libraries, higher levels of automation and extending Kubernetes is possible. In the following section, the best practices covered in the first section and the client libraries included in this section are gathered together to create applications that extend Kubernetes.
+
+# Kubernetes Extensions
+
+Kubernetes is highly customizable and extensible so that any segment of the system can be configured comprehensively and extended with new features. Extension points of Kubernetes do not focus on low-level configuration of the built-in resources, such as pods or stateful sets. However, extending Kubernetes means extending the operations of Kubernetes itself. These extension points enable many practices, including creating new Kubernetes resources, automating Kubernetes and human interactions, and intervening with the creation or editing of resources and their scheduling mechanisms.
+
+In this section, extension points and patterns will be presented, and the most common and essential extension points will be covered. Firstly, the Kubernetes API will be enhanced, and human knowledge will be converted into the automation of Kubernetes operators. Secondly, the control access mechanisms of Kubernetes will be extended with webhooks and initializers. Finally, the default scheduler of Kubernetes will be configured with highly customizable options. How to develop and deploy a custom scheduler will also be demonstrated. Throughout these chapters, you should be able to implement and deploy extensions by creating applications that consume the Kubernetes API.  
+
+
+
+# Kubernetes Extension Points
+
+Kubernetes itself and its built-in resources are highly configurable so that any modern cloud-native application can be configured to run on the cloud environment. When it comes to adding new capabilities, converting human knowledge into code and automating more, the Kubernetes extension comes to the rescue. Fortunately, to extend the capabilities of Kubernetes, users do not need to download the source code, make changes, build and deploy the complete system. With its modularity, the extension points of Kubernetes are already defined and ready to use.
+
+Kubernetes extension points focus on the current functionalities of Kubernetes and its environment. Built-in components and how to extend Kubernetes are summarized in the following categories:  
+
+-   **Kubernetes clients**: It is possible to extend client applications such as kubectl by writing kubectl plugins. These extensions will help you use kubectl with less human interaction, such as choosing a Kubernetes cluster context automatically. Likewise, generated clients with the OpenAPI specifications can extend client libraries such as client-go. With these generated clients, you can programmatically use the Kubernetes API in custom applications.
+-   **Kubernetes API types**: Kubernetes API resources such as pods, deployments, and many more are highly configurable, but it is also possible to add new resources called custom resources.
+-   **Kubernetes API controllers**: The control plane of Kubernetes, which includes the Kubernetes API server, handles all operations, such as automatic scaling or self-healing; however, it is also possible to develop custom controllers.
+-   **Access controllers**: The access control mechanism that handles authentication, authorization, and admission controllers can be extended by connecting to webhook servers or intervening with initializers.
+-   **Scheduling**: kube-scheduler already handles the scheduling of pods to the nodes; however, it is also possible to create custom schedulers and deploy them to the clusters.
+-   **Infrastructure**: The infrastructure part of Kubernetes is standardized, regarding the server, network, and storage with the **Container Runtime Interface** (**CRI**), **Container Network Interface** (**CNI**), and **Container Storage Interface** (**CSI**). The implementation, of these interfaces provide ways of extending the infrastructure of the underlying Kubernetes clusters.  
+    
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/a8b93813-0e64-4bfb-8d31-b79e868e3b53.png)
+
+
+
+# Extending Kubernetes Clients
+
+Kubernetes client applications and libraries are the main entry points for accessing the Kubernetes API. With these applications and libraries, it is possible to automate and extend Kubernetes operations.
+
+For the official Kubernetes client applications, kubectl can be extended by writing plugin applications. Some of the most popular plugins enhance the capabilities of kubectl:
+
+-   It switches the Kubernetes cluster context automatically
+-   It calculates and displays the uptime information of pods
+-   It connects via SSH into a container with a specific user
+
+Official Kubernetes code generators can generate official Kubernetes client libraries and Kubernetes server codes. These generators create the required source code for internal versioned types, clients informers, and protobuf codecs.
+
+With the extension points on client applications and libraries, it is possible to enhance operations that interact with Kubernetes. If your custom requirements need more than the capabilities of kubectl or client libraries, Kubernetes provides extension points for customization.  
+
+
+
+# Extending the Kubernetes API
+
+Kubernetes already has a rich set of resources, starting from pods as building blocks to higher-level resources such as stateful sets and deployments. Modern cloud-native applications can be deployed in terms of Kubernetes resources and their high-level configuration options. However, they are not sufficient when human expertise and operations are required. Kubernetes enables extending its own API with new resources and operates them as Kubernetes-native objects with the following features:
+
+-   **RESTful API**: New resources are directly included in the RESTful API so that they are accessible with their special endpoints.
+-   **Authentication and authorization**: All requests for new resources go through the steps of authentication and authorization, like native requests.
+-   **OpenAPI discovery**: New resources can be discovered and integrated into OpenAPI specifications.
+-   **Client libraries**: Client libraries such as kubectl or client-go can be used to interact with new resources.
+
+Two major steps are involved when extending the Kubernetes API:
+
+-   Create a new Kubernetes resource to introduce the new API types
+-   Control and automate operations to implement custom logic as an additional API controller  
+    
+
+# Custom Resource Definitions
+
+In Kubernetes, all of the resources have their REST endpoints in the Kubernetes API server. REST endpoints enable operations for specif c objects, such as pods, by using /api/v1/namespaces/default/pods. Custom resources are the extensions of the Kubernetes API that can be dynamically added or removed during runtime. They enable users of the cluster to operate on extended resources.
+
+Custom resources are defined in **Custom Resource Definition** (**CRD**) objects. Using the built-in Kubernetes resources, namely CRDs, it is possible to add new Kubernetes API endpoints by using the Kubernetes API itself.
+
+In the following section, a new custom resource will be created for the requirements that typically require human interaction inside Kubernetes.  
+
+# Creating and Deploying Custom Resource Definitions
+
+Consider, a client wants to watch weather reports in a scalable cloud-native way in Kubernetes. We are expected to extend the Kubernetes API so that the client and further future applications natively use weather report resources. We want to create CustomResourceDefinitions and deploy them to the cluster to check their effects, and use newly defined resources to create extended objects.
+
+  
+You can find the crd.yaml file at: [https://goo.gl/ovwFX1](https://goo.gl/ovwFX1).  
+
+Let's begin by implementing the following steps:
+
+1.  Deploy the custom resource definition with kubectl with the following command:
+
+```markup
+kubectl apply -f k8s-operator-example/deploy/crd.yaml
+```
+
+Custom resource definitions are Kubernetes resources that enable the dynamic registration of new custom resources. An example custom resource for WeatherReport can be defined as in the k8s-operator-example/deploy/crd.yaml file, which is shown as follows:
+
+```markup
+apiVersion: apiextensions.k8s.io/v1beta1kind: CustomResourceDefinitionmetadata:      name: weatherreports.k8s.packt.comspec:      group: k8s.packt.com      names:            kind: WeatherReport            listKind: WeatherReportList             plural: weatherreports             singular: weatherreportscope: Namespacedversion: v1
+```
+
+Like all other Kubernetes resources, CRD has API version, kind, metadata, and specification groups. In addition, the specification of CRD includes the definition for the new custom resource. For WeatherReport, a REST endpoint will be created under k8s.packt.com with the version of v1, and their plural and singular forms will be used within clients.  
+
+2.  Check the custom resources deployed to the cluster with the following command:  
+    
+
+```markup
+ kubectl get crd
+```
+
+You will get the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/d809bece-bc5c-405c-93af-4c635b5fa94d.png)
+
+As shown in the preceding screenshot, the weather report CRD is defined with the plural name and group name.  
+
+3.  Check the REST endpoints of the API server for new custom resources:
+
+```markup
+kubectl proxy &curl -s localhost:8001 |grep packt 
+```
+
+You will get the following output:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/584d1b25-5143-458f-ab74-0e07afe88d5f.png)
+
+New endpoints are created, which shows that the Kubernetes API server is already extended to work with our new custom resource, weatherreports.  
+
+4.  Check the weather report instances from Kubernetes clients such as kubectl:
+
+```markup
+kubectl get weatherreports
+```
+
+You will get the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/6a5cb085-f387-43b3-a1c3-1b2e08a15e85.png)
+
+Although the output of No resources found looks like an indication of an error, it shows us that there are no live instances of the weatherreports resource as expected. It shows us that, without any further configuration other than creating a CustomResourceDefinition, the Kubernetes API server is extended with new endpoints and clients are ready to work with the new custom resource.
+
+After defining the custom resource, it is now possible to create, update, and delete resources with the WeatherReport. An example of WeatherReport can be defined, as in the k8s-operator-example/deploy/cr.yaml file:
+
+```markup
+apiVersion: "k8s.packt.com/v1"kind: WeatherReportmetadata:      name: amsterdam-dailyspec:     city: Amsterdam     days: 1
+```
+
+  
+You can find the cr.yaml file at: [https://goo.gl/4A3VD2](https://goo.gl/4A3VD2).  
+
+The WeatherReport resource has the same structure, with built-in resources and consists of API version, kind, metadata, and specification. In this example, the specif cation indicates that this resource is for the weather report for Amsterdam city and for the last 1 day.
+
+5.  Deploy the weather report example with the following command:  
+    
+
+```markup
+ kubectl apply -f k8s-operator-example/deploy/cr.yaml
+```
+
+6.  Check for the newly created weather reports with the following command:
+
+```markup
+kubectl get weatherreports
+```
+
+You'll see the following output:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/47e6d784-6824-45f4-bc8e-eb0bd4e02938.png)
+
+7.  Use the following commands for cleaning up:  
+    
+
+```markup
+kubectl delete -f k8s-operator-example/deploy/cr.yamlkubectl delete -f k8s-operator-example/deploy/crd.yaml
+```
+
+# Custom Controllers
+
+In the previous section and exercise, we were shown that custom resources enable us to extend the Kubernetes API. However, there is also a need for taking actions against custom resources and automating the tasks. In other words, who will create the weather report and collect the results when a new weatherreport resource is created? The answer to this question is a custom controller in Kubernetes, which are also known as **operators**.
+
+With the built-in Kubernetes resources, it is possible to deploy, scale, and manage stateless web applications, mobile backends, and API services easily. When it comes to the stateful applications where additional operations are required, such  
+as initialization, storage, backup, and monitoring, domain knowledge and human expertise is needed.  
+
+A custom controller, also known as an operator, is an application where domain knowledge and human expertise is converted into code. Operators work with custom resources and take the required actions when custom resources are created, updated, or deleted. The primary tasks of operators can be divided into three sections, **Observe**, **Analyze**, and **Act**, as shown in the following diagram:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/bbf6c67a-7609-43be-89aa-bf0600e6ed84.png)
+
+The stages are explained as follows:
+
+-   **Observe**: Watches for changes on custom resources and related built-in resources such as pods.
+-   **Analyze**: Makes an analysis of observed changes and decides on which actions to take.
+-   **Act**: Takes actions based on the analysis and requirements and continues observing for changes.
+
+For the weather report example, the operator pattern is expected to work as follows:
+
+-   **Observe**: Wait for weather report resource creation, update, and deletion.
+-   **Analyze**:
+    -   If a new report is requested, create a pod to gather weather report results and update weather report resources.
+    -   If the weather report is updated, update the pod to gather new weather report results.
+    -   If the weather report is deleted, delete the corresponding pod.
+-   **Act**: Take the actions from the **Analyze** step on the cluster and continue watching with **Observe**.
+
+Operators are already being utilized in the Kubernetes environment since they enable complex applications to run on the cloud with minimum human interaction. Storage providers (Rook), database applications (MySQL, CouchDB, PostgreSQL),  
+big data solutions (Spark), distributed key/value stores (Consul, etcd), and many more modern cloud-native applications are installed on Kubernetes by their official operators.  
+
+# Operator Development
+
+Operators are native Kubernetes applications, and they extensively interact with the Kubernetes API. Therefore, being compliant with the Kubernetes API and converting domain expertise into software with a straightforward approach is critical for operator development. With these considerations, there are two paths for developing operators, as explained in the following sections.
+
+# Kubernetes Sample Controller
+
+In the official Kubernetes repository, a sample controller that implements watching custom resources is maintained. This repository demonstrates how to register new custom resources and how to perform basic operations on the new resource, such as creating, updating, or listing. In addition, controller logic is also implemented to show how to take actions. Repository and interaction with the Kubernetes API is a complete approach, which shows you how to create a Kubernetes like custom controller.
+
+# Operator Framework
+
+The Operator Framework was announced at KubeCon 2018 as an open source toolkit for managing Kubernetes native applications. The Operator SDK is a part of this framework, and it simplifies operator development by providing higher level API abstractions and code generation. The Operator Framework and its environment toolset is open source and community maintained with the control of CoreOS.
+
+In this section the Operator SDK from the Operator Framework has been selected to be used since SDK abstracts many low-level operations such as work queues, handler registrations, and informer management. With these abstractions, it is easier to handle **Observe** and **Act** parts with the packages from the SDK so that we can focus on the **Analyze** part.  
+
+In the following section, the complete life cycle of operator development is covered with the following main steps:
+
+-   **Create an operator project**: For the WeatherReport custom resource, an operator project in the Go language is created by using the Operator Framework SDK CLI.
+-   **Define custom resource specification**: The specification of the WeatherReport custom resource is defined in Go.
+-   **Implement handler logic**: The manual operations needed for weather report collection are implemented in Go.
+-   **Build operator**: The operator project is built using the Operator Framework SDK CLI.
+-   **Deploy operator**: The operator is deployed to the cluster, and it is tested by creating custom resources.  
+    
+
+# Creating and Deploying the Kubernetes Operator
+
+A client wants to automate the operations of the weather report collection. They are currently connecting to third-party data providers and retrieving the results. In addition, they want to use cloud-native Kubernetes solutions in their clusters.  
+We are expected to automate the operations of weather report data collection by implementing a Kubernetes operator.  
+We'll create a Kubernetes operator by using the Operator Framework SDK and utilize it by creating a custom resource, custom controller logic, and finally, deploying into the cluster. Let's begin by implementing the following steps:
+
+1.  Create the operator project using the Operator Framework SDK tools with the following command:
+
+```markup
+operator-sdk new k8s-operator-example --api-version=k8s.packt.com/v1 --kind=WeatherReport
+```
+
+This command creates a completely new Kubernetes operator project with the name k8s-operator-example and watches for the changes of the WeatherReport custom resource, which is defined under k8s.packt.com/v1. The generated operator project is available under the k8s-operator-example folder.
+
+2.  A custom resource definition has already been generated in the deploy/crd.yaml file. However, the specification of the custom resource is left empty so that it can be filled by the developer. Specifications and statuses of the custom resources are coded in Go, as shown in pkg/apis/k8s/v1/types.go:
+
+```markup
+type WeatherReport struct {               metav1.TypeMeta 'json:",inline"'               metav1.ObjectMeta 'json:"metadata"'               Spec WeatherReportSpec'json:"spec"'               Status WeatherReportStatus'json:"status,omitempty"'}type WeatherReportSpec struct {               City string 'json:"city"'               Days int 'json:"days"'}
+```
+
+  
+You can refer to the complete code at: [https://goo.gl/PSyf25](https://goo.gl/PSyf25).  
+
+In the preceding code snippet, WeatherReport consists of metadata, spec, and status, just like any built-in Kubernetes resource. WeatherReportSpec includes the configuration, which is City and Days in our example.WeatherReportStatus includes State and Pod to keep track of the status and the created pod for the weather report collection.  
+
+3.  One of the most critical parts of the operator is the handler logic, where domain expertise and knowledge is converted into code. In this example activity, when a new WeatherReport object is created, we will publish a pod that queries the weather service and writes the result to the console output. All of these steps are coded in the pkg/stub/handler.go file as follows:
+
+```markup
+func (h *Handler) Handle(ctx types.Context, event types.Event) error {   switch o := event.Object.(type) {        case *apiv1.WeatherReport:           if o.Status.State == "" {               weatherPod := weatherReportPod(o)               err := action.Create(weatherPod)               if err != nil && !errors.IsAlreadyExists(err) {                   logrus.Errorf("Failed to create weather report pod : %v", err)
+```
+
+  
+You can refer the complete code at: [https://goo.gl/uxW4jv](https://goo.gl/uxW4jv).
+
+In the Handle function, events carrying objects are processed. This handler function is called from the informers watching for the changes on the registered objects. If the object is WeatherReport and its status is empty, a new weather report pod is created, and the status is updated with the results.
+
+4.  Build the complete project as a Docker container with the Operator SDK and toolset:  
+    
+
+```markup
+operator-sdk build <DOCKER_IMAGE:DOCKER_TAG>
+```
+
+The resulting Docker container is pushed to Docker Hub as onuryilmaz/k8s-operator-example for further usage in the cluster.  
+
+5.  Deploy the operator into the cluster with the following commands:
+
+```markup
+kubectl create -f deploy/crd.yamlkubectl create -f deploy/operator.yaml
+```
+
+With the successful deployment of the operator, logs could be checked as follows:
+
+```markup
+kubectl logs -l name=k8s-operator-example
+```
+
+The output is as follows:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/733e017d-8bee-44a0-a0df-eec09e4d4536.png)
+
+6.  After deploying the custom resource definition and the custom controller, it is time to create some resources and collect the results. Create a new WeatherReport instance as follows:
+
+```markup
+kubectl create -f deploy/cr.yaml
+```
+
+With its successful creation, the status of the WeatherReport can be checked:  
+
+```markup
+ kubectl describe weatherreport amsterdam-daily
+```
+
+You will see the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/74d1bd80-9521-44f3-b5a0-f997ee310495.png)
+
+7.  Since the operator created a pod for the new weather report, we should see it in action and collect the results:
+
+```markup
+kubectl get pods
+```
+
+You'll see the following result:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/cdbad87f-7b00-4343-ab32-8e3085d9777e.png)
+
+8.  Get the result of the weather report with the following command:
+
+```markup
+kubectl logs $(kubectl get weatherreport amsterdam-daily -o jsonpath={.status.pod})
+```
+
+You'll see the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/6d04f366-a8bb-44ff-9b6c-d96126b5a19f.png)
+
+9.  Clean up with the following command:
+
+```markup
+kubectl delete -f deploy/cr.yamlkubectl delete -f deploy/operator.yamlkubectl delete -f deploy/crd.yaml
+```
+
+
+
+# Kubernetes Dynamic Admission Control
+
+The Kubernetes API server is responsible for every request. The extension point in the request life cycle in the API server is for dynamic admission control. The admission controller is one of the most important stages of the request life cycle, since it intercepts and checks whether a request should be approved or not.
+
+For every API request, first of all, the requester is checked by authentication and authorization. Afterward, admission controllers are run and decide to approve or reject the request. Finally, validation steps are carried out, and the resulting objects are stored:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/dfd8705f-19ba-434c-8e27-d94136059d13.png)
+
+Life cycle of a Kubernetes API request  
+
+The _dynamic_ part of admission control comes from the fact that they can be dynamically added, removed, or updated during the runtime of Kubernetes clusters. In addition to the built-in admission controllers, there are ways of extending admission controllers:
+
+-   Image policy webhooks for restricting the images in the cluster
+-   Admission webhooks for approving or rejecting the creation or updates
+-   Initializers for modifying objects prior to their creation  
+    
+
+# Admission Webhooks
+
+Admission webhooks are extension points that can receive admission requests by the API server and then return accept or reject responses. As they are webhooks, HTTP requests and responses are expected by the API server. Two types of admission webhooks are supported:
+
+-   Validating admission webhooks for rejecting or accepting CRUD requests
+-   Mutating admission webhooks for changing the requests to enforce custom default values  
+    
+
+Dynamic admission webhook configurations are deployed to the cluster during runtime as MutatingWebhookConfiguration or ValidatingWebhookConfiguration objects. When an API request is received, the API server creates the necessary controls during the admission webhooks stage. If there are webhook configurations defined for the request, the admission controller sends a request to the specified servers and collect the responses. If all checks are approved, validation and persistence steps continue for handling the API request.
+
+Admission webhooks work on all request types, such as create, update, or delete, and they are robust and widely used. However, they cannot query the resources since webhooks are not part of the Kubernetes API server. In addition, admission webhooks are not generally available yet and are still in development.  
+
+# Initializers
+
+Initializers are dynamic runtime elements of the Kubernetes workflow that enable the modification of the resources before their actual creation. In other words, initializers allow developers to interfere with and make any changes to the resources,  
+such as deployments or pods, and include custom modification logic for the Kubernetes resource life cycle.
+
+Some possible use cases of initializers are as follows:
+
+-   Injecting a sidecar container
+-   Injecting a volume with certificates
+-   Preventing the creation of some resources that violate custom limitations
+
+Initializers are dynamic controllers, and they are defined or removed during runtime with InitializerConfiguration resources. InitializerConfiguration combines a set of resources and initializers so that when a matching resource is created, the API server adds the corresponding initializer to the resource definition.  
+The list of initializers are maintained in the metadata.initializers.pending field. On the other hand, initializers are always watching for the new resources so that they can implement their custom logic on the objects. When _Initializer X_ is in the first slot, namely metadata.initializers.pending\[0\] , _Initializer X_ gets the resource and modifiers. Then, it removes itself, _Initializer X_, from the metadata.initializers.pending list so that the next initializer will work. When all of the initializers complete their operations, and the list is empty, the resource is released and continues the creation life cycle.
+
+Initializers are easy to develop, and they are an extremely flexible way of extending the admission control mechanism. However, the uptime of the initializers is critical since they will block the API server. In addition, initializers are not generally available and are still in development.  
+
+
+# Extending the Kubernetes Scheduler
+
+Pods are the basic unit of work that are scheduled by Kubernetes to run on nodes. By default, Kubernetes has a built-in scheduler, and it tries to assign pods to the nodes evenly by ensuring that there are sufficient free resources. There are some use cases to configure and extend the scheduler behavior of Kubernetes considering the custom requirements of scalable and reliable cloud-native applications:
+
+-   Running certain pods on specialized hardware
+-   Co-locating some pods that include interacting services
+-   Dedicating some nodes to some users
+
+Scheduler customization and extension patterns, starting from the basics to the complex, are listed as follows:
+
+-   Assigning node labels and using node selectors
+-   Using affinity and anti-affinity rules
+-   Marking nodes with taints, and pods with tolerations
+-   Creating and deploying custom scheduler algorithms  
+    
+
+# Node Labels
+
+The fundamental underlying idea of scheduling is based on the labels of nodes in Kubernetes. The built-in scheduler and any custom schedulers are expected to check the specification of the nodes from their labels. With this idea, there are some  
+integrated node labels, such as the following ones:
+
+```markup
+kubernetes.io/hostnamefailure-domain.beta.kubernetes.io/zonefailure-domain.beta.kubernetes.io/regionbeta.kubernetes.io/instance-typebeta.kubernetes.io/osbeta.kubernetes.io/arch 
+```
+
+These labels and their values are assigned by the cloud providers, but do note that label values are not standardized yet. For Minikube, there is only one master node, and its labels can be checked with the following command:
+
+```markup
+$ kubectl get nodes --show-labelsNAME STATUS ROLES AGE VERSION LABELSminikube Ready master 9m v1.10.0 beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/hostname=minikube, node-role.kubernetes.io/master=
+```
+
+As highlighted, the node with the hostname minikube has an architecture of amd64 with an operating system, linux, and its node-role is master.
+
+# Node Selectors
+
+Node selectors are the most straightforward constraints that can be used with the Kubernetes scheduler. Node selectors are part of pod specification, and they are key-value maps. The keys of the node selector are expected to match with node labels,  
+and the values are the constraints for the scheduler.
+
+They are included in the pod specification as follows:
+
+```markup
+apiVersion: v1kind: Podmetadata:  name: nginxspec:  containers:  - name: nginx    image: nginxnodeSelector:  beta.kubernetes.io/arch: amd64
+```
+
+With that pod definition, the Kubernetes scheduler is limited to assigning the pod nginx to a node with an architecture of amd64. If there are no nodes with the constraints, the pods will wait in a Pending state until a node that ensures the  
+limitations join the cluster.  
+
+# Node Affinity
+
+Node affinity is a more expressive form of the nodeSelector specification, which includes two sets of constraints:
+
+-   requiredDuringSchedulingIgnoredDuringExecution: This set indicates the constraints that must be satisfied prior to scheduling a pod to a node. This set is similar to nodeSelector; however, it enables more flexible definitions.
+-   preferredDuringSchedulingIgnoredDuringExecution: This set indicates the constraints that are preferred during scheduling, but not guaranteed.
+
+In short, the first set consists of the hard limits for the scheduler, whereas the second set consists of the soft limits. The IgnoredDuringExecution part indicates if labels change and constraints are not satisfied during runtime, no changes will be made by the scheduler.  
+With these node affinity rules, it is easy to define complex rules in order to limit the scheduler. For instance, in the following pod definition with the requiredDuringSchedulingIgnoredDuringExecution group, pods are restricted to run only in a PowerPC environment. In addition, with the preferredDuringSchedulingIgnoredDuringExecution group, pods attempt to run on the nodes in availability zone A if possible:
+
+```markup
+apiVersion: v1...   requiredDuringSchedulingIgnoredDuringExecution:...spec:  affinity:        - key: kubernetes.io/arch          operator: In          values:          - ppc64_lepreferredDuringSchedulingIgnoredDuringExecution:- weight: 1preference:matchExpressions:- key: failure-domain.beta.kubernetes.io/zone  operator: In  values:  - availability-zone-a
+```
+
+# Pod Affinity
+
+The node affinity rules from the last section define pod and node assignment relationships. They describe a set of restrictions for pods to run on a set of nodes. With the same approach, inter-pod affinity, and anti-affinity rules, define constraints based on other pods. For instance, with the pod affinity rules, pods can be scheduled together for a limited set of nodes. Likewise, with the pod anti-affinity rules, pods can repel each other for a specific topology key, for instance, a node. For pod affinities, hard and soft limits can be defined with requiredDuringSchedulingIgnoredDuringExecution and preferredDuringSchedulingIgnoredDuringExecution.
+
+With the following pod definition, pod affinity ensures that pods will only run on the nodes in the same availability zone, that is, pods with the service=backend label. In other words, affinity rules will try and ensure that our pod will be scheduled into the same availability zone, with the backend services, considering they are interacting with each other. With the pod anti-affinity, the scheduler will try not to run on the nodes that already have pods running in the service=backend label. In other words, if possible, they will not be scheduled to the same nodes with the backend to avoid creating a single point of failure:
+
+```markup
+apiVersion: v1...    podAffinity:      requiredDuringSchedulingIgnoredDuringExecution:...spec:  affinity:         - key: service           operator: In           values:          - backend        topologyKey: failure-domain.beta.kubernetes.io/zone podAntiAffinity:        preferredDuringSchedulingIgnoredDuringExecution:          - key: service            operator: In            values:           - backend          topologyKey: kubernetes.io/hostname
+```
+
+# Taints and Tolerations
+
+Affinity rules define constraints for the scheduler so that they can assign pods on the nodes. On the other hand, Kubernetes provides a way of rejecting pods from the standpoint of nodes by taints and tolerations. Taints and tolerations work together so that a set of pods are not scheduled to a set of nodes. Taints are applied to the nodes to reject some pods, and tolerations allow the pod to be accepted on some nodes.
+
+Taints tag the nodes with pod labels for "not scheduling". For instance, with the following command, no pods will be scheduled to nodeA unless matching tolerations are defined for key and value:
+
+```markup
+kubectl taint nodes nodeA key=value:NoSchedule
+```
+
+Tolerations tags the pods so that the taints are not applied to these pods. For example, with the following toleration in the pod specification, the preceding taint will not be applied:
+
+```markup
+apiVersion: v1kind: Podmetadata:  name: with-pod-tolerationspec:  tolerations:  - key: "key"    operator: "Equal"    value: "value"    effect: "NoSchedule"containers:- name: with-pod-toleration  image: k8s.gcr.io/pause:2.0
+```
+
+Tolerations and taints work together so that nodes can be tainted with some user groups or specific labels, and tolerations can be defined in the pod definition for the following use cases:
+
+-   Dedicated nodes
+-   Nodes with special hardware
+-   Taint-based evictions for the behavior in the case of node problems  
+    
+
+# Custom Scheduler Development
+
+The Kubernetes scheduler can be highly configured with node selectors, node affinity, pod affinity, taints, and toleration rules. In the case of custom scheduling requirements, it is also possible to develop and deploy custom schedulers in a  
+Kubernetes cluster. Kubernetes supports running multiple schedulers out-of-the-box. A custom scheduler in Kubernetes can be developed with any programming language. However, since it will interact extensively with the Kubernetes API, it is  
+customary to use a programming language that has a Kubernetes client library:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/90772b5c-9a77-48d7-9d62-31183635039f.png)
+
+The basic workflow of the scheduler can be divided into three main consecutive stages. The scheduler waits for the pods with the specific scheduler name and no node assignment. When such a pod is found, the scheduler runs its custom algorithms to find a suitable node. Finally, the scheduler creates a binding, which is a built-in subresource of a pod in Kubernetes.
+
+A custom scheduler in Go is implemented in the k8s-scheduler-example/main. go file and the basic workflow of _Wait_, _Find a suitable node_, and the _Create pod binding_ stages are combined together in the following code snippet:  
+
+```markup
+ for {     // Request pods from all namespaces     pods, err := clientset.CoreV1().Pods(v1.NamespaceAll).List(metav1.ListOptions{})  ...     // Check for podsfor _, pod := range pods.Items {    // If scheduler name is set and node is not assigned    if pod.Spec.SchedulerName == *schedulerName && pod.Spec.    NodeName == "" {      // Schedule the pod to a random node      err := schedule(pod.Name, randomNode(), pod.Namespace)      ...    }  }     ...} 
+```
+
+The schedule function in the following code snippet is provided to create a binding between the pod and a node. The Bind method is called under the pod in clientset in the last line of the function since it is a subresource of a pod:
+
+```markup
+func schedule(pod, node, namespace string) error {   fmt.Printf("Assigning %s/%s to %s\n", namespace, pod, node)   // Create a binding with pod and node   binding := v1.Binding{      ObjectMeta: metav1.ObjectMeta{         Name: pod,      },      Target: v1.ObjectReference{         Kind: "Node",         APIVersion: "v1",         Name: node,      }}return clientset.CoreV1().Pods(namespace).Bind(&binding)}
+```
+
+This custom scheduler randomly assigns nodes to the pods with the custom scheduler named packt-scheduler. The build files and documentation are provided under the k8s-scheduler-example folder, and are ready to be deployed to the cluster. In the following section, the deployment and use of multiple schedulers in a Kubernetes cluster will be presented.  
+
+# Deploying and using a Custom Kubernetes Scheduler
+
+Consider, a client has a Kubernetes cluster and requires an additional scheduler for the pods with predefined labels. The new scheduler should work side-by-side with the built-in scheduler, and it should be deployed to the cluster. We'll deploy and use a custom Kubernetes scheduler and check how the schedulers work in the cluster. We need to ensure that the following steps are completed before deploying a Kubernetes scheduler:
+
+-   Use the random assignment scheduler from this exercise.
+-   The scheduler container is already in Docker hub: onuryilmaz/k8sscheduler-example.
+-   Use packt-scheduler as the custom scheduler name.
+-   Show the status of the pods if the custom scheduler is not running.  
+    
+
+  
+You can find the pod.yaml file at: [https://goo.gl/aCRppt](https://goo.gl/aCRppt).  
+  
+
+Let's begin with the implementation:
+
+1.  Create a pod with the custom scheduler name, defined as packt-scheduler:  
+    
+
+```markup
+kubectl apply -f k8s-scheduler-example/deploy/pod.yaml
+```
+
+After deploying the pod, its status can be checked:
+
+```markup
+kubectl get pods 
+```
+
+You should see the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/026e2563-a4ea-4c65-aa25-d050c3fba0b7.png)
+
+Since there is no scheduler deployed to the cluster with the name packt-scheduler, its status will be stuck as Pending forever.
+
+2.  Deploy the scheduler into the cluster with the following command:
+
+```markup
+kubectl apply -f k8s-scheduler-example/deploy/scheduler.yaml 
+```
+
+  
+You can find the scheduler.yaml file at: [https://goo.gl/AaSu8o](https://goo.gl/AaSu8o).  
+  
+
+3.  Check the pods with the following command:
+
+```markup
+kubectl get pods
+```
+
+You'll get the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/94b1c7d9-532e-497a-8db2-b66aa50ab0c9.png)
+
+As shown previously, the scheduler runs in a pod and, in addition, the nginx pod, which was Pending before, now has the Running status.  
+
+4.  In addition, check the logs of the scheduler:  
+    
+
+```markup
+ kubectl logs scheduler
+```
+
+You'll get the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/3c3dabd6-40dd-42d6-bb97-e6cb68a099e6.png)
+
+5.  Run the following command for cleaning up:  
+    
+
+```markup
+kubectl delete -f k8s-scheduler-example/deploy/pod.yamlkubectl delete -f k8s-scheduler-example/deploy/scheduler.yaml
+```
+
+
+
+# Extending Kubernetes Infrastructure
+
+Kubernetes clusters are run on actual bare-metal clusters and interact with the infrastructure systems running on the servers. Extension points for infrastructure are still in the design stage and not mature enough for standardization. However, they can be grouped as follows:
+
+-   **Server**: The Kubernetes node components interact with container runtimes such as Docker. Currently, Kubernetes is designed to work with any container runtime that implements the **Container Runtime Interface** (**CRI**) specification. CRI consists of libraries, protocol buffers, and the gRPC API to define the interaction between Kubernetes and the container environment.
+-   **Network**: Kubernetes and the container architecture requires high-performance networking, decoupled from container runtime. The connections between containers and network interfaces are defined with the abstraction of the **Container Network Interface** (**CNI**). The CNI consists of a set of interfaces for adding and removing containers from the Kubernetes network.
+-   **Storage**: Storage for Kubernetes resources is provided by the storage plugins that are communicating with cloud providers or the host system. For instance, a Kubernetes cluster running on AWS could easily get storage from AWS and attach to its stateful sets. Operations including storage provisioning and consuming in container runtimes are standardized under the **Container Storage Interface** (**CSI**). In Kubernetes, any storage plugin implementing CSI can be used as a storage provider.
+
+The infrastructure of Kubernetes can be extended to work with servers implementing CRI, network providers compliant with CNI, and storage providers realizing CSI.  
+
+
+In thiss ection, extending Kubernetes was covered, where we enabled converting domain expertise into automation and intervening Kubernetes operations. Firstly, the extension points in Kubernetes were presented to show its built-in extension  
+capabilities. Throughout the chapter, new resources were added to the Kubernetes API, and their operations were automated so that Kubernetes can work for custom resources in addition to the built-in ones. Following this, resource creation logic was extended with dynamic admission controllers, and you were shown how to include operational requirements in the Kubernetes API resource life cycle.
+
+Finally, configuring the scheduler of Kubernetes was presented to cover all extensive  
+requirements for nodes and inter-pod relations. How to write, deploy, and use a custom scheduler was also shown. With the extension capabilities included in this chapter, it is possible to use Kubernetes, not only as a container orchestrator, but as a  
+platform capable of handling all custom requirements of cloud-native applications.
