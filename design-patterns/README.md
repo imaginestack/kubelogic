@@ -1,4 +1,4 @@
-## Kubernetes Design Patterns
+# Kubernetes Design Patterns
 
 Design patterns are the formalization of best practices for everyday problems. Using design patterns in everyday, professional life creates a common language and communication platform for you to work on. In real life, seasoned engineers do not explain how to convert one interface into another; instead, they decide to implement an adapter. Design patterns hide the complexity and details of communication and create a common platform. In addition, converting business requirements into code is more comfortable with the accumulated knowledge of design patterns.
 
@@ -335,13 +335,11 @@ Before choosing a deployment strategy, it should be taken into consideration tha
 
 This section contains the worked-out answers for the activities present in each lesson. Note that in case of descriptive questions, your answers might not match the ones provided in this section completely. As long as the essence of the answers remain the same, you can consider them correct.
 
-Bookmark
 
-# section 1: Kubernetes Design Patterns
+### Activity Solutions
 
-Following are the activity solutions for this section.
 
-# Activity: Running a Web Server with Synchronization
+#  Running a Web Server with Synchronization
 
 In the sidecar.yaml file, pod definition with two containers, namely server and sync, is provided. In the server container, httpd serves the source volume on port 80. In the sync container, git runs with every 30 seconds to synchronize the source volume. These two containers work independently; however, they are sharing the source volume to achieve file synchronization:  
 
@@ -455,9 +453,8 @@ kubectl get pod inject
 kubectl logs inject
 ```
 
-Bookmark
 
-# section 2: Kubernetes Client Libraries
+#  Client Libraries
 
 Following are the activity solutions for this section.  
 
