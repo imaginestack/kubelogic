@@ -479,3 +479,488 @@ kubectl get pods -w
 ```markup
 kubectl logs $(kubectl get pods --selector run=go-client -o jsonpath="{.items[0].metadata.name}")
 ```
+# Kubernetes Client Libraries
+
+Kubernetes provides multiple options for creating applications with the Kubernetes API. These options include tools such as kubectl, helm, kops, and kubeadm; and client libraries, which are officially supported or community-maintained. However, it is essential that you know the capabilities and boundaries of the clients in order to create applications that interact with Kubernetes.
+
+In this section, you will learn how to access the Kubernetes API directly and use Kubernetes client libraries. Firstly, direct access to the Kubernetes API will be explained, and responses from the Kubernetes API will be demonstrated. Following that, official and community-maintained libraries will be given, including detailed information and example applications. Throughout this section, you'll develop applications that connect to the Kubernetes API, inside and outside the cluster.  
+
+By the end of this section, you will be able to:
+
+-   Evaluate the Kubernetes API request and response style
+-   Connect to the Kubernetes API using HTTP
+-   Find and use official client libraries
+-   Write, run, and deploy client library applications
+-   Evaluate community-maintained client libraries for further projects  
+    
+
+
+# Accessing the Kubernetes API
+
+Kubernetes consists of several loosely-coupled components, with the principal idea of managing versioned resources. Kubernetes components can be divided into two sections: the control plane and node components. The control plane consists of the API Server, Controller Managers, and Schedulers. The API Server is the core management component and has the following functionalities:
+
+-   Serves a REST API for the clients outside the cluster and Kubernetes components inside the cluster
+-   Creates, deletes, and updates all of the Kubernetes resources, such as pods, deployments, and services
+-   Stores the state of the objects in a distributed key/value store  
+    
+
+# Kubernetes API Style
+
+The Kubernetes API is a RESTful service that requires all clients to create, read, update, and delete resources using HTTP requests, such as GET, PUT, POST, and DELETE. Client applications such as kubectl or client libraries in various programming languages implement the API response and request types. For communication, the Kubernetes API accepts and returns JSON data, just like most of the RESTful services that are available.  
+
+**Representational State Transfer** (**REST**) is an architectural style for web applications so that they can use HTTP requests. As a convention, GET is used for reading resources, POST is used for creating resources, PUT is used for updating resources, and DELETE is used for deleting resources.  
+
+Servers that apply the RESTful API are expected to have clients without any knowledge of server structure. Likewise, the server should provide all related information for the client so that it can operate and interact with itself.
+
+**JavaScript Object Notation** (**JSON**) is a popular and lightweight data exchange format. JSON is suitable for machine parsing and generation, and is human-readable and expressive. Although written in JavaScript, JSON is supported by multiple languages and is a crucial data type of modern asynchronous browser/server communication.
+
+In the following section, the Kubernetes API response style will be explored by calling an API server REST endpoint.  
+
+# Getting a JSON Response from the Kubernetes API
+
+This section shows how to retrieve raw data from the Kubernetes API by using kubectl and analyze the data as a JSON object for the parts of the resource.
+
+Let's begin by implementing the following steps:  
+
+1.  Get the raw data with the following command:
+
+```markup
+kubectl get --raw /api/v1/namespaces/kube-system
+```
+
+2.  As a result, you will see a JSON response. Let's get the same command and format the output:
+
+```markup
+kubectl get --raw /api/v1/namespaces/kube-system | python -m json.tool
+```
+
+If Python is not locally installed, any online JSON formatter can be used by copying and pasting the output.
+
+3.  The JSON response shows the structure of a Kubernetes API resource:
+
+```markup
+{"apiVersion": "v1","kind": "Namespace","metadata": {    "creationTimestamp": "2018-04-15T10:21:34Z",    "name": "kube-system",    "resourceVersion": "81",    "selfLink": "/api/v1/namespaces/kube-system",    "uid": "c5db1188-4096-11e8-903d-0800273b4d24"},
+```
+
+Kubernetes API resources have "apiVersion" since all resources are versioned in the system. "kind" shows the type of the resource and "metadata" has all of the meta information, such as the creation timestamp, labels, or annotations. "spec" is the part where all properties of the resource are listed. Finally, most of the resources have a "status" section to show their state, errors, or messages (if any).  
+
+# Accessing the Kubernetes API
+
+The Kubernetes API server is secure, requiring all incoming connections to be authenticated. There are two common ways of connecting and securely communicating with the Kubernetes API server. The first one is by using the reverse proxy functionality of kubectl and the second one is by using the API server credentials. These approaches can be summarized as follows:  
+
+-   The reverse proxy Kubernetes API with kubectl:
+    -   The Kubectl proxy command starts a proxy server between the localhost and the Kubernetes API server.
+    -   All incoming requests are forwarded to the remote Kubernetes API server port.
+    -   The API server identity is verified by using self-signed certificates so that no **Man-in-the-Middle** (**MITM**) attacks are is possible.
+    -   kubectl handles authentication to the API server. This is a recommended approach in the official Kubernetes documentation.
+    -   Further development is ongoing; client-side load balancing and failover features could be provided in the future.
+-   Provides the API server address and credentials directly:
+    -   The API server address and credentials are available within and outside the cluster and they can be provided as parameters.
+    -   This is an alternative approach and should be used as a last resort if the client application cannot work with a reversed proxy.
+    -   In order to protect from MITM attacks, certificates should be imported to the clients, for example, through browsers.
+
+In the following activity, connecting to the Kubernetes API by using the kubectl proxy is carried out to create a new Kubernetes namespace. With this method, kubectl securely connects to the API server with its own credentials and creates a proxy for the applications on the local system.
+
+# Connecting to the Kubernetes API and Creating Namespaces
+
+In this section, you are assigned the job of creating namespaces for tests by using the Kubernetes API. Tests are running outside the cluster and communicate with the Kubernetes API. In order to run tests in their own namespaces, you need to create a namespace. With the successful completion of this task, a new namespace will be created within Kubernetes by sending JSON data. Let's ensure to follow these steps before starting with our example:
+
+-   Create a proxy with kubectl and make it available to all applications on the local system
+-   Use JSON and cURL to communicate with the Kubernetes API
+-   Gather the JSON structure of the namespace resource by querying kubesystem and use it as a template  
+    
+
+Let's begin by implementing the following steps:
+
+1.  Start the reverse proxy with the following command:
+
+```markup
+kubectl proxy --port=8080
+```
+
+2.  In another terminal, create an HTTP request to the forwarded port:
+
+```markup
+curl http://localhost:8080/api/v1/namespaces/kube-system
+```
+
+The response is expected to be a JSON structure similar to the following:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/7abbc564-ca11-4aee-b64d-853f2c238915.png)
+
+3.  Using the response of _Step 2_ as a template, create a simple namespace JSON object:
+
+```markup
+{"apiVersion":"v1","kind":"Namespace","metadata":{"name":"packt-client"}}
+```
+
+4.  Create the new namespace by using curl with the payload data from _Step 3_:
+
+```markup
+curl -X POST http://localhost:8080/api/v1/namespaces/ \--header "Content-Type: application/json" \--data \'{"apiVersion":"v1","kind":"Namespace","metadata":{"name":"packt-client"}}'
+```
+
+As a result of this command, the newly created namespace data will be received:
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/0f9024d6-4866-4623-ad2c-9ca54246b42c.png)
+
+5.  You can run the following command for cleanup:
+
+```markup
+kubectl delete namespace packt-client
+```
+
+# Accessing the Kubernetes API inside a Cluster
+
+Accessing the Kubernetes API outside the cluster is mostly done for operational bases where human interaction is required. In addition to outside communication, accessing the Kubernetes API inside the cluster to make requests to the API server is also possible. It enables writing applications and running them inside the cluster, which could convert operational knowledge into applications.
+
+For all of the pods in the cluster, Kubernetes injects service accounts – they are the recommended way of authenticating to the Kubernetes API server. For each pod, the following information and credentials related to service accounts are mounted  
+by default:  
+
+-   **Service account and token**: /var/run/secrets/kubernetes.io/serviceaccount/token
+-   **Certificate bundle**: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+-   **Namespace**: /var/run/secrets/kubernetes.io/serviceaccount/namespace
+
+Using this information within the cluster forms a secure way of connecting to the Kubernetes API server and making requests. The service account, which is an authentication mechanism in Kubernetes, uses signed tokens to verify requests. They are created and managed by the Kubernetes API server. For each pod running in Kubernetes, service account tokens are mounted, and they enable pods to communicate with the Kubernetes API server. Further information is available in the official documentation: [https://kubernetes.io/docs/admin/authentication](https://kubernetes.io/docs/admin/authentication).  
+
+# To Connect to the Kubernetes API inside a Cluster
+
+In this section, we'll create a simple application to query the Kubernetes API and get the details of the kube-system namespace. However, this application should run inside the cluster and work as a Kubernetes native application. We'll query the Kubernetes API within a cluster with the injected environment variables and certificates in the pods.
+
+Let's begin by implementing the following steps:  
+
+1.  Start a cURL instance inside the cluster and wait until it is up and running:  
+    
+
+```markup
+kubectl run curl --image=tutum/curl --rm -it
+```
+
+2.  Inside the pod, check the security credentials:
+
+```markup
+ls /var/run/secrets/kubernetes.io/serviceaccount/
+```
+
+You'll get the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/33a4ec4e-4602-47db-84d5-277b215b3718.png)
+
+3.  Check that the Kubernetes API server has the related environment variables:
+
+```markup
+env | grep KUBE 
+```
+
+You'll get the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/dccd7f87-ed37-4ef0-8403-304c6d921ff0.png)
+
+4.  Combine all of the credentials and address information together with the following commands:
+
+```markup
+APISERVER=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORTTOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)CACERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crtNAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+```
+
+5.  With the collected environment variables from _Step 4_, create and send an HTTP request by using cURL:
+
+```markup
+curl --header "Authorization: Bearer $TOKEN" --cacert$CACERT $APISERVER/api/v1/namespaces/kube-system 
+```
+
+By using the preceding command, a GET request will be sent to the /api/v1/namespaces/kube-system endpoint. In order to authenticate to the API server, a bearer token is sent as a header, and certificate authority information is provided.
+
+As a result of this command, the requested namespace information will be retrieved from the API server:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/32f0bb5d-baac-4ebd-b8bb-9a3385becd49.png)
+
+The Kubernetes API is the core management service and it is a secure RESTful service that consumes JSON. It requires all of the clients to be authenticated, and both outside and inside cluster connections are possible. In the following section, client libraries for various programming languages are presented that implement the Kubernetes API.  
+
+Bookmark
+
+# Official Client Libraries
+
+Applications that consume the Kubernetes REST API should implement API calls, including request and response types. Considering the rich set of Kubernetes resources that are provided to us, developing and maintaining API implementation becomes complex. Fortunately, Kubernetes has a rich set of official client libraries that are implemented in various programming languages. Client libraries do not only handle requests and responses, but also handle authentication to the API server. Besides, most of the client libraries can discover and connect to the Kubernetes API server if it is running inside the cluster.
+
+In this section, official Go and Python client libraries will be presented. The client repositories, documentation, how to install, and how to create simple applications that are running inside and outside the clusters will be covered.  
+
+# Go Client Library
+
+Go, which is also of en referred to as Golang, is a programming language that was created by Google in 2009. Prominent features of Go include the following:
+
+-   It is statically typed so that the compiler ensures object types and conversions are working
+-   It has memory safety with no development concerns
+-   It has garbage collection with a minimal overhead
+-   The structural typing of objects is based on their composition
+-   It has first-citizen concurrency handling with primitives such as go routines and channels
+
+Go is a free, open source programming language that has compilers and environment tools. Go became popular within cloud-native applications because the aforementioned features are well-fitting to the requirements of scalable and reliable applications. Some of the most notable projects that use Go as their primary language are as follows:
+
+-   Docker
+-   Kubernetes
+-   Terraform
+-   OpenShift
+-   Consul
+-   Bitcoin Lightning Network
+-   InfluxDB
+-   CockroachDB  
+    
+
+# Repository
+
+Kubernetes' Go client, namely client-go, is part of the Kubernetes official project, which is available at [https://github.com/kubernetes/client-go](https://github.com/kubernetes/client-go).
+
+It is the oldest and the most comprehensive client library. Kubernetes resource handlers of the client library are generated with the official source code generators from Kubernetes. In addition, client-go is widely used inside Kubernetes projects,  
+such as kubectl, helm, and kops.
+
+# Documentation
+
+The Go client repository consists of the following packages and respective focus areas:
+
+-   kubernetes: Clientset to access the Kubernetes API
+-   discovery: Discover APIs supported by the Kubernetes API server
+-   dynamic: Dynamic client to perform generic API access
+-   transport: Authentication and connection start
+-   tools/cache: Helpers for writing controllers
+
+The Go client follows the official documentation style of the Go language and it is available at [https://godoc.org/k8s.io/client-go](https://godoc.org/k8s.io/client-go).
+
+# Installation
+
+In the Go language, its toolset provides the go get command as a standard way of downloading and installing packages with their dependencies. This command downloads the default branch and the latest changes from source control version providers. However, specific versions of the Kubernetes client are designed to work with particular versions of dependencies. Therefore, the standard go get command is not usable. Instead, dependency management solutions proposed for Go should be used to work with client-go reliably.
+
+In other words, the required version of client-go should be decided, and then the dependency manager downloads it with the corresponding dependencies. This concept of handling dependencies is called **vendoring**. Accordingly, dependency managers collect the dependency libraries and put them in the vendor folder.
+
+For a Go application that uses the client-go library, all related libraries and their dependencies should be collected under the vendor folder for reliable and repeatable builds.
+
+The Kubernetes Go client supports multiple dependency management tools, such as dep, godeps, and glide. In addition, the required steps for casual users who do not want to use any dependency management tools are provided in the official documentation of client-go: [https://github.com/kubernetes/client-go/blob/master/INSTALL.md](https://github.com/kubernetes/client-go/blob/master/INSTALL.md).
+
+# Creating Configuration
+
+The Go client library provides the necessary functionalities to connect to the Kubernetes API server. It is easy to create the configuration so that you can communicate outside the cluster and inside the cluster. You can do so with the following code snippets:
+
+```markup
+// Create configuration outside the cluster config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)// Create configuration inside the cluster config, err = rest.InClusterConfig()
+```
+
+# Creating Clientset
+
+Clientset contains the clients for each groupof resources and provides access to them. With its redacted version, as shown in the following code, it can be seen that every group of resources have their clients implemented in the client library:
+
+```markup
+type Clientset struct {       ...       appsV1 *appsv1.AppsV1Client       ...       batchV1 *batchv1.BatchV1Client       coreV1 *corev1.CoreV1Client       eventsV1beta1 *eventsv1beta1.EventsV1beta1Client       networkingV1 *networkingv1.NetworkingV1Client
+       rbacV1 *rbacv1.RbacV1Client       storageV1beta1 *storagev1beta1.StorageV1beta1Client       storageV1 *storagev1.StorageV1Client }
+```
+
+Using the configuration from the previous step, clientset can be created with the following code snippet:
+
+```markup
+// Create clientset from configuration clientset, err := kubernetes.NewForConfig(config)
+```
+
+# Making API Calls
+
+After creating the configuration and clientset, API calls can finally be carried out. All of the Kubernetes resources can be listed, updated, created, or deleted by using the clients in the provided clientset. Some examples are shown in the following code snippet:
+
+```markup
+// Request all pods from all namespacespods, err :=clientset.CoreV1().Pods(v1.NamespaceAll).List(metav1.ListOptions{}) // Get deployment packt from the default namespacedeployments, err := clientset.AppsV1().Deployments(v1.NamespaceDefault).Get("packt", metav1.GetOptions{})// Delete statefulset test from namespace packtclientset.AppsV1().StatefulSets("packt").Delete("test", &amp;metav1.DeleteOptions{}) 
+```
+
+Code snippets are provided for the configuration, client creation, and making API calls using the Kubernetes Go client in the previous sections. The complete application code is provided in go/main.go, bringing together all of the snippets at [https://goo.gl/wJBjG5](https://goo.gl/wJBjG5).  
+
+We can note the following points in the main.go file:
+
+-   In the main function that was started at _line 19_, all of the variables are defined, and the command-line arguments are parsed at _line 30_.
+-   Configuration is created from kubeconfig, and as a fallback method, it is created by in-cluster methods between _lines 33_ and _42_.
+-   Clientset is created at _line 45_.
+-   Between _lines 51_ and _65_, an indefinite loop is defined with 10 seconds of sleep at the end of iterations.
+-   At every iteration of this loop, pods from all namespaces are requested at _line 53_. The response is printed to the console between _lines 58_ and _62_.
+
+In the following example, an application combining all of the code snippets in the previous sections is built and run. It shows you how to build a Go application and use it outside the cluster. Although the application seems straightforward, the flow and codebase creates a foundation for complex automation requirements.  
+
+# To Use the Kubernetes Go Client outside the Cluster
+
+In this section, we'll learn to build and run a Go application, consuming Kubernetes Go client and connecting the application outside the cluster. Go applications are built by using go toolset commands such as go build. However, this requires the installation of Go locally. In this example, we will use the official Docker image of the Go language without any installation on the local machine:
+
+1.  Create a cross-platform build using the official Docker container by using the following command:
+
+```markup
+cd gomake build
+```
+
+2.  Start the application using the executable we created in _Step 1_ and the kubeconfig file location:
+
+```markup
+./client --kubeconfig=$HOME/.kube/config
+```
+
+You will see the following output:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/e58345f5-359c-4a91-a83c-06e7412d75b0.png)
+
+# Activity: Using the Kubernetes Go Client inside the Cluster
+
+**Scenario**
+
+You are assigned the task of deploying a Go application that lists all of the pods in Kubernetes. Besides this, the application will run inside the cluster and receive information about its cluster.
+
+**Aim**
+
+To run an application that consumes the Go client library inside the Kubernetes cluster.
+
+**Prerequisites**
+
+1.  Use the Docker image onuryilmaz/k8s-client-example:go image, which contains the executable from the previous example.
+2.  Deploy the application and check the logs to see whether it is working as expected.
+
+**Steps for Completion**
+
+1.  Create a deployment with the Docker image of the example client from the previous example.
+2.  Wait until the pod is running.
+3.  Get the logs of the deployment pod.
+
+With this command, the logs of the pod are retrieved with a subcommand. In the subcommand, all pods are retrieved with the selector label of run equal to go-client, and the name of the first pod is gathered. Logs should indicate the client itself, in addition to other pods in the cluster:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/8c5a13bf-69dd-4d0d-a354-f7a3d71f74bd.png)
+
+4.  Run the following command for cleanup:
+
+```markup
+kubectl delete deployment go-client
+```
+
+# Python Client Library
+
+Python is a high-level and general-purpose programming language that was first released in 1990. It is one of the most popular open source programming languages, used in various areas, including machine learning, data processing, web development, and scripting. The essential feature of Python is that the language is interpreted with dynamic type checking. Python owes its popularity to its clear programming style and focus on code readability. In modern cloud-native environments, Python is mostly used for infrastructure and automation. In addition to its popularity and widespread usage, Kubernetes has an official client library that's implemented in Python.
+
+# Repository
+
+The Kubernetes Python client is part of the official client repository and is available at [https://github.com/kubernetes-client/python](https://github.com/kubernetes-client/python).
+
+The Python client is an OpenAPI compliant client, which means that Swagger tools generate resource definitions. The client library is still in progress, and its capabilities should be checked from the repository before using them in production. The Python client, like every other Kubernetes client, attempts to support a set of predefined functionalities, and it is classified as "Silver" according to its coverage.
+
+The OpenAPI is a specification for describing RESTful APIs. Using the OpenAPI specification, it is possible to create an implementation for clients and services, including all of the corresponding operations.  
+  
+Swagger is the tooling ecosystem for developing APIs, which is defined in OpenAPI. Swagger provides both open source and commercial tools to create applications for the provided specification.
+
+# Installation
+
+There are two ways of installing the client library so that you can create a development environment. The first way is to download the source code and build:
+
+```markup
+$ git clone --recursive https://github.com/kubernetes-client/python.git$ cd python$ python setup.py install
+```
+
+The second way is to download the package from the Python Package Index by using a package manager such as pip:
+
+```markup
+$ pip install kubernetes
+```
+
+# Client Usage
+
+In the previous section, a Go application that lists all the pods was developed. The same functionality as the previous application is performed in Python in this section. With the clean code and readability philosophy of Python, the same functionality is handled in around ten lines of code, as follows:
+
+```markup
+from kubernetes import client, configimport timeconfig.load_incluster_config()v1 = client.CoreV1Api()while True:         ret = v1.list_pod_for_all_namespaces(watch=False)         print('There are {:d} pods in the cluster:'.format(len(ret.items)))         for i in ret.items:                print('{:s}/{:s}'.format((i.metadata.namespace, i.metadata.name))         time.sleep(10)
+```
+
+These are the critical points to mention about the preceding code snippet:
+
+-   In _line 3_, the in-cluster configuration, and in _line 5_, the client for the corev1 API are created.
+-   Starting in _line 8_, an infinite loop starts with a sleep of 10 seconds at each iteration.
+-   In _line 9_, all pods are requested from the v1 client and the response is parsed and written to the console.  
+    
+
+# Packaging
+
+The Python application should run inside a container, like all services running on Kubernetes. Thus, the client library defined in this section is packaged with the following Dockerfile. This container definition enables the application to run its isolated environment with its dependencies:
+
+```markup
+FROM python:3RUN pip install kubernetesADD . /client.pyCMD ["python", "./client.py"]
+```
+
+  
+Please refer to the complete code at: [https://goo.gl/z78SKr](https://goo.gl/z78SKr).
+
+The following are remarks about the preceding code:
+
+-   The container has the basis of Python supporting version 3.
+-   The Kubernetes Python client library is installed using pip in _line 3_.
+-   The client application is copied into the container in _line 5_ and started in _line 7_.
+
+In the following section, the code snippets presented for Python are utilized to work in a Kubernetes cluster. The complete code is packaged as a Docker container with its dependencies. With this container, the application is deployed to Kubernetes in an isolated way, which follows a microservice architecture.  
+
+# Using the Kubernetes Python Client inside the Cluster
+
+In this section, we'll deploy a Python application that lists all of the pods and consumes the Python client library inside Kubernetes. Besides this, the application will run inside the cluster and gather information about its cluster.
+
+Before starting with the implementation, we need to use the Docker image onuryilmaz/k8s-client-example:python, which was built using the Dockerfile in the last section. We also need to deploy the application as a deployment and check the logs to see whether it is working as expected. Let's begin by implementing the following steps:  
+
+1.  Create a deployment with the Docker image of the example client:  
+    
+
+```markup
+kubectl run python-client -it --image=onuryilmaz/k8sclient-example:python
+```
+
+With this command, a deployment with the name python-client will be created with the Docker image onuryilmaz/k8s-client-example:python in an interactive mode so that logs will be printed to the console.
+
+Logs should indicate the client itself, in addition to other pods in the cluster:  
+
+![](https://static.packt-cdn.com/products/9781789619270/graphics/assets/34faffbf-f9cb-4356-8c29-6c32952de9ef.png)
+
+2.  Run the following command for cleanup:  
+    
+
+```markup
+ kubectl delete deployment python-client
+```
+
+# Other Official Client Libraries
+
+In this section, two official Kubernetes client libraries have been covered:
+
+-   **Go**: This is a statically typed compiler-based language
+-   **Python**: This is a dynamically typed and interpreted language
+
+Official client libraries also include some additional programming languages:
+
+-   **Java**: [https://github.com/kubernetes-client/java](https://github.com/kubernetes-client/java)
+-   **.NET**: [https://github.com/kubernetes-client/csharp](https://github.com/kubernetes-client/csharp)
+-   **JavaScript**: [https://github.com/kubernetes-client/javascript](https://github.com/kubernetes-client/javascript)
+
+For the capabilities and hurdles of these libraries, you should check their corresponding repositories since they are all still in the development phase.  
+
+
+# Community-Maintained Client Libraries
+
+Kubernetes has an active and collaborative open source community, which has also increased its popularity. There are around 20 community-maintained client libraries that are listed in the Kubernetes documentation, which cover the following languages:
+
+-   Clojure
+-   Go
+-   Java
+-   Lisp
+-   Node.js
+-   Perl
+-   PHP
+-   Python
+-   Ruby
+-   Scala
+-   dotNet
+-   Elixir
+
+There are some critical points to consider before using a community-maintained client library:  
+
+-   **Aim of the library**: It is crucial to consider the aim of the development team and library. Although it seems not directly related to the software itself, it affects how the client library is developed. For instance, some libraries focus on simplicity and compromise on capability coverage. If the vision of your application and the client library don't match, it would be difficult to maintain the application in the long run.
+-   **Version and support**: Official libraries support specific Kubernetes API versions and maintain a compatibility matrix. It is critical to work with the client libraries that work with your Kubernetes cluster, and it is also essential to get support for future Kubernetes versions. A community-maintained client library could be very suitable today but depreciate in six months if not supported.  
+    
+-   **Community interest**: If the considered client library is open source, its community should be alive and interested in making the library better. It is very common to see some libraries start very well but not be maintained due to a missing community. It is not advised to use a client library with old issues without any comments or pull requests that are not reviewed for a very long time.  
+    
+
+
+# Summary
+
+In this section, Kubernetes API access and client libraries were discussed. Although there are various tools for communicating with Kubernetes, knowing the Kubernetes API itself and the client libraries is crucial for creating game-changing automation and orchestration tasks.  
+Firstly, the Kubernetes API style and how to connect using HTTP clients was presented. Following that, the client libraries of Kubernetes were covered, and we focused on two official client libraries. For both Go and Python, how to install, write code, package, and deploy this code into cluster steps was done with demonstrations and activities.  
+Finally, community-maintained libraries for different language preferences or custom requirements were shown. With the knowledge and hands-on experience of Kubernetes client libraries, higher levels of automation and extending Kubernetes is possible. In the following section, the best practices covered in the first section and the client libraries included in this section are gathered together to create applications that extend Kubernetes.
