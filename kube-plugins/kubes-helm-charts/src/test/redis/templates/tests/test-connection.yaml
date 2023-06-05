@@ -1,0 +1,17 @@
+{{- if .Values.tests.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "redis.fullname" . }}-test-connection"
+  labels:
+{{ include "redis.labels" . | indent 4 }}
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: ping
+      image: busybox
+      command: ['nc']
+      args:  ['{{ include "redis.fullname" . }}', '{{ .Values.service.port }}']
+  restartPolicy: Never
+{{- end }}

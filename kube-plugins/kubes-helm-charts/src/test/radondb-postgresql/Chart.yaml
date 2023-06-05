@@ -1,0 +1,29 @@
+apiVersion: v2
+appVersion: 11.11.0
+dependencies:
+- name: common
+  version: 1.4.2
+description: Chart for PostgreSQL with HA architecture.
+home: https://github.com/radondb/radondb-postgresql-kubernetes.git
+keywords:
+- postgresql
+- repmgr
+- pgpool
+- postgres
+- database
+- sql
+- replication
+- cluster
+- high availability
+maintainers:
+- email: radondb@yunify.com
+  name: RadonDB
+
+name: postgresql
+sources:
+- https://github.com/radondb/radondb-postgresql-kubernetes.git
+- https://www.postgresql.org/
+version: 1.0.3
+annotations:
+  "app.kubesphere.io/category": "Database & Cache"
+  "app.kubesphere.io/display-name": "RadonDB PostgreSQL"
