@@ -1,0 +1,137 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.cfargotunnel.com
+  resources:
+  - clustertunnels
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.cfargotunnel.com
+  resources:
+  - clustertunnels/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - networking.cfargotunnel.com
+  resources:
+  - clustertunnels/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.cfargotunnel.com
+  resources:
+  - tunnelbindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.cfargotunnel.com
+  resources:
+  - tunnelbindings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - networking.cfargotunnel.com
+  resources:
+  - tunnelbindings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.cfargotunnel.com
+  resources:
+  - tunnels
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.cfargotunnel.com
+  resources:
+  - tunnels/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - networking.cfargotunnel.com
+  resources:
+  - tunnels/status
+  verbs:
+  - get
+  - patch
+  - update
